@@ -2,14 +2,18 @@ pipeline {
   agent {
     docker {
       image 'durvesh123/maven-docker-agent:v1'
-      // override entrypoint so Spring Boot app doesn't start
-      args '--entrypoint tail --user root -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/workspace -w /workspace'
+      args '--user root --entrypoint tail -v /var/run/docker.sock:/var/run/docker.sock'
+      // `tail -f /dev/null` will be executed as the container command to keep it alive
     }
+  }
+  options {
+    skipDefaultCheckout(true) // optional: avoid double checkout
   }
   stages {
     stage('Checkout') {
       steps {
         checkout scm
+        sh 'echo passed'
       }
     }
 
@@ -26,7 +30,10 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+          sh '''
+            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+            mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
+          '''
         }
       }
     }
@@ -34,6 +41,7 @@ pipeline {
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "durvesh123/ultimate-cicd:${BUILD_NUMBER}"
+        REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
         script {
