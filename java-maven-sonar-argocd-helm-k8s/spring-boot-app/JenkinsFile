@@ -13,6 +13,9 @@ pipeline {
           branches: [[name: '*/main']],
           userRemoteConfigs: [[url: 'https://github.com/1durvesh/CICD.git']]
         ])
+        // Debug: Print current directory and list files to check if .git exists
+        sh 'pwd'
+        sh 'ls -la'
       }
     }
 
@@ -57,14 +60,16 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          sh '''
-            git config user.email "durveshkolhe81@gmail.com"
-            git config user.name "durvesh"
-            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-          '''
+          dir('') {
+            sh '''
+              git config user.email "durveshkolhe81@gmail.com"
+              git config user.name "durvesh"
+              sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+              git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+              git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+              git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+            '''
+          }
         }
       }
     }
