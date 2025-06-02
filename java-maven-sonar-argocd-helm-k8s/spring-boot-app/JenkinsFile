@@ -17,9 +17,21 @@ pipeline {
       }
     }
 
+    stage('Prepare .git Directory') {
+      steps {
+        sh '''
+          echo "[INFO] Cloning full repo to get .git directory"
+          cd $WORKSPACE
+          rm -rf /tmp/full-repo
+          git clone https://github.com/1durvesh/CICD.git /tmp/full-repo
+          cp -r /tmp/full-repo/.git .
+          echo "[INFO] .git directory copied successfully"
+        '''
+      }
+    }
+
     stage('Build and Test') {
       steps {
-        sh 'ls -ltr'
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
@@ -38,7 +50,6 @@ pipeline {
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "anushkafarkade/ultimate-cicd:${BUILD_NUMBER}"
-        REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
         script {
