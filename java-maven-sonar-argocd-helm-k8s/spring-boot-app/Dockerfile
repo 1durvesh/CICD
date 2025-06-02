@@ -1,13 +1,17 @@
-# You can change this base image to anything else
-# But make sure to use the correct version of Java
-FROM adoptopenjdk/openjdk11:alpine-jre
+FROM maven:3.8.7-eclipse-temurin-17
 
-# Simply the artifact path
-ARG artifact=target/spring-boot-web.jar
+LABEL maintainer="anushkafarkade"
 
-WORKDIR /opt/app
+# Install Docker CLI (for Ubuntu)
+RUN apt-get update && \
+    apt-get install -y ca-certificates curl gnupg lsb-release && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY ${artifact} app.jar
-
-# This should not be changed
-ENTRYPOINT ["java","-jar","app.jar"]
+# Verify versions
+RUN java -version && mvn -version && docker --version
