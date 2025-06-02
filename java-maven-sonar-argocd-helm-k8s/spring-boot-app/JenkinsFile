@@ -8,7 +8,11 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
-        checkout scm // ✅ This line checks out the GitHub repo into the Jenkins workspace
+        // ✅ Fix: Cloning the GitHub repository
+        checkout([$class: 'GitSCM',
+          branches: [[name: '*/main']],
+          userRemoteConfigs: [[url: 'https://github.com/1durvesh/CICD.git']]
+        ])
       }
     }
 
@@ -58,7 +62,7 @@ pipeline {
             git config user.name "durvesh"
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}" || echo "No changes to commit"
+            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
           '''
         }
