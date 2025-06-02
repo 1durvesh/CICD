@@ -17,6 +17,18 @@ pipeline {
       }
     }
 
+    stage('Prepare .git Directory') {
+      steps {
+        sh '''
+          echo "[INFO] Cloning full repo to get .git directory"
+          rm -rf /tmp/full-repo
+          git clone https://github.com/1durvesh/CICD.git /tmp/full-repo
+          cp -r /tmp/full-repo/.git $WORKSPACE/
+          echo "[INFO] .git directory copied successfully"
+        '''
+      }
+    }
+
     stage('Build and Test') {
       steps {
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
@@ -56,16 +68,32 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          dir("${env.WORKSPACE}") {
-            sh '''
+          sh '''
+            echo "Current working directory:"
+            pwd
+            
+            echo "Listing directory contents:"
+            ls -la
+            
+            if [ -d .git ]; then
+              echo ".git folder found!"
+            else
+              echo ".git folder NOT found!"
+            fi
+            
+            # Proceed only if .git exists
+            if [ -d .git ]; then
               git config user.email "durveshkolhe81@gmail.com"
               git config user.name "durvesh"
               sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
               git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
               git diff --cached --quiet || git commit -m "Update deployment image to version ${BUILD_NUMBER}"
               git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
-            '''
-          }
+            else
+              echo "Skipping git commands because .git folder is missing"
+              exit 1
+            fi
+          '''
         }
       }
     }
