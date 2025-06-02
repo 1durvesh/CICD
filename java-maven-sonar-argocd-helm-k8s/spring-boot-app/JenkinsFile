@@ -69,20 +69,17 @@ pipeline {
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
           sh '''
-            echo "Current working directory:"
+            echo "Current working directory before cd:"
             pwd
-            
-            echo "Listing directory contents:"
             ls -la
-            
+
+            cd $WORKSPACE
+            echo "Current working directory after cd:"
+            pwd
+            ls -la
+
             if [ -d .git ]; then
               echo ".git folder found!"
-            else
-              echo ".git folder NOT found!"
-            fi
-            
-            # Proceed only if .git exists
-            if [ -d .git ]; then
               git config user.email "durveshkolhe81@gmail.com"
               git config user.name "durvesh"
               sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
