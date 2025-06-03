@@ -7,19 +7,13 @@ pipeline {
     }
 
     options {
-        skipDefaultCheckout(true)  // hum khud checkout karenge
+        skipDefaultCheckout(true)
     }
 
     stages {
         stage('Clean Workspace') {
             steps {
-                sh '''
-                echo "[INFO] Fixing ownership and clearing workspace..."
-                chown -R jenkins:jenkins /var/lib/jenkins/workspace || true
-                find /var/lib/jenkins/workspace -type f -exec chmod 644 {} \\; || true
-                find /var/lib/jenkins/workspace -type d -exec chmod 755 {} \\; || true
-                rm -rf /var/lib/jenkins/workspace/CICD || true
-                '''
+                cleanWs() // Jenkins built-in workspace cleaner (better and safer)
             }
         }
 
@@ -36,6 +30,7 @@ pipeline {
             steps {
                 sh 'pwd'
                 sh 'ls -la'
+                sh 'git status' // This will now work and confirm `.git` is present
             }
         }
 
@@ -97,8 +92,7 @@ pipeline {
                 }
             }
         }
-
-    } // end of stages
+    }
 
     post {
         always {
