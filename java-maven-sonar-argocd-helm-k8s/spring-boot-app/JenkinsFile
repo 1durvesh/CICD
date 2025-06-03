@@ -2,15 +2,13 @@ pipeline {
   agent {
     docker {
       image 'anushkafarkade/maven-jdk17-docker-cli:latest'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock 
-      
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
   options {
     skipDefaultCheckout(true) // Disable Jenkins auto-checkout
   }
   stages {
-
     stage('Clean Workspace') {
       steps {
         sh '''
@@ -73,7 +71,6 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          // Ensure you run inside workspace with .git folder accessible
           dir("$WORKSPACE") {
             sh '''
               git config user.email "durveshkolhe81@gmail.com"
