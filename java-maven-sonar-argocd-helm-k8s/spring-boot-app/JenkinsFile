@@ -2,8 +2,8 @@ pipeline {
   agent {
     docker {
       image 'anushkafarkade/maven-jdk17-docker-cli:latest'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:$WORKSPACE'
-      // Mount workspace directory into container so .git exists inside container
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock 
+      
     }
   }
   options {
