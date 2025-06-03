@@ -2,11 +2,12 @@ pipeline {
   agent {
     docker {
       image 'anushkafarkade/maven-jdk17-docker-cli:latest'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:$WORKSPACE'
+      // Mount workspace directory into container so .git exists inside container
     }
   }
   options {
-    skipDefaultCheckout(true) // ✅ Disable auto-checkout that causes error
+    skipDefaultCheckout(true) // Disable Jenkins auto-checkout
   }
   stages {
 
@@ -14,10 +15,10 @@ pipeline {
       steps {
         sh '''
           echo "[INFO] Fixing ownership and clearing workspace..."
-          chown -R jenkins:jenkins /var/lib/jenkins/workspace || true
-          find /var/lib/jenkins/workspace -type f -exec chmod 644 {} \\; || true
-          find /var/lib/jenkins/workspace -type d -exec chmod 755 {} \\; || true
-          rm -rf /var/lib/jenkins/workspace/CICD || true
+          chown -R jenkins:jenkins $WORKSPACE || true
+          find $WORKSPACE -type f -exec chmod 644 {} \\; || true
+          find $WORKSPACE -type d -exec chmod 755 {} \\; || true
+          rm -rf $WORKSPACE/CICD || true
         '''
       }
     }
@@ -72,14 +73,17 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          sh '''
-            git config user.email "durveshkolhe81@gmail.com"
-            git config user.name "durvesh"
-            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-          '''
+          // Ensure you run inside workspace with .git folder accessible
+          dir("$WORKSPACE") {
+            sh '''
+              git config user.email "durveshkolhe81@gmail.com"
+              git config user.name "durvesh"
+              sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+              git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+              git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+              git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+            '''
+          }
         }
       }
     }
