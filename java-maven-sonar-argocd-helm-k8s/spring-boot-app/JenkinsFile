@@ -5,16 +5,19 @@ pipeline {
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
-
+  options {
+    skipDefaultCheckout(true) // ✅ Disable auto-checkout that causes error
+  }
   stages {
 
     stage('Clean Workspace') {
       steps {
         sh '''
-          echo "[INFO] Fixing file ownership and cleaning workspace..."
-          chown -R jenkins:jenkins /var/jenkins_home/workspace || true
-          chmod -R u+rwX /var/jenkins_home/workspace || true
-          rm -rf /var/jenkins_home/workspace/* || true
+          echo "[INFO] Fixing ownership and clearing workspace..."
+          chown -R jenkins:jenkins /var/lib/jenkins/workspace || true
+          find /var/lib/jenkins/workspace -type f -exec chmod 644 {} \\; || true
+          find /var/lib/jenkins/workspace -type d -exec chmod 755 {} \\; || true
+          rm -rf /var/lib/jenkins/workspace/CICD || true
         '''
       }
     }
