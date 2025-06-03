@@ -9,6 +9,19 @@ pipeline {
     skipDefaultCheckout(true) // ✅ Disable auto-checkout that causes error
   }
   stages {
+
+    stage('Clean Workspace') {
+      steps {
+        sh '''
+          echo "[INFO] Fixing ownership and clearing workspace..."
+          chown -R jenkins:jenkins /var/lib/jenkins/workspace || true
+          find /var/lib/jenkins/workspace -type f -exec chmod 644 {} \\; || true
+          find /var/lib/jenkins/workspace -type d -exec chmod 755 {} \\; || true
+          rm -rf /var/lib/jenkins/workspace/CICD || true
+        '''
+      }
+    }
+
     stage('Checkout') {
       steps {
         checkout([$class: 'GitSCM',
