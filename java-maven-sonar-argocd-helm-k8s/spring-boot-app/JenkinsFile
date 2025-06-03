@@ -2,12 +2,15 @@ pipeline {
   agent {
     docker {
       image 'anushkafarkade/maven-jdk17-docker-cli:latest'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+      // Run Docker container as Jenkins user (UID 111, GID 113)
+      args '--user 111:113 -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
+
   options {
     skipDefaultCheckout(true) // Disable Jenkins auto-checkout
   }
+
   stages {
 
     stage('Clean Workspace') {
@@ -39,7 +42,10 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+          sh '''
+            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+            mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
+          '''
         }
       }
     }
@@ -51,7 +57,10 @@ pipeline {
       }
       steps {
         script {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
+          sh '''
+            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+            docker build -t ${DOCKER_IMAGE} .
+          '''
           def dockerImage = docker.image("${DOCKER_IMAGE}")
           docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
             dockerImage.push()
@@ -79,6 +88,13 @@ pipeline {
           }
         }
       }
+    }
+  }
+
+  post {
+    always {
+      // Reset ownership to Jenkins user in case container modifies permissions
+      sh 'sudo chown -R jenkins:jenkins . || true'
     }
   }
 }
