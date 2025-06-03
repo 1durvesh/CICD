@@ -9,15 +9,11 @@ pipeline {
     skipDefaultCheckout(true) // Disable Jenkins auto-checkout
   }
   stages {
+
     stage('Clean Workspace') {
       steps {
-        sh '''
-          echo "[INFO] Fixing ownership and clearing workspace..."
-          chown -R jenkins:jenkins $WORKSPACE || true
-          find $WORKSPACE -type f -exec chmod 644 {} \\; || true
-          find $WORKSPACE -type d -exec chmod 755 {} \\; || true
-          rm -rf $WORKSPACE/CICD || true
-        '''
+        // Fully clean the workspace before checkout to avoid permission issues
+        deleteDir()
       }
     }
 
