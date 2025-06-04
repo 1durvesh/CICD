@@ -5,9 +5,11 @@ pipeline {
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
+
   options {
     skipDefaultCheckout(true)
   }
+
   stages {
 
     stage('Clean Workspace') {
@@ -24,9 +26,16 @@ pipeline {
 
     stage('Checkout') {
       steps {
-        checkout([$class: 'GitSCM',
+        checkout([
+          $class: 'GitSCM',
           branches: [[name: '*/main']],
-          userRemoteConfigs: [[url: 'https://github.com/1durvesh/CICD.git']]
+          userRemoteConfigs: [[
+            url: 'https://github.com/1durvesh/CICD.git',
+            credentialsId: 'github' // Make sure this credential exists
+          ]],
+          doGenerateSubmoduleConfigurations: false,
+          extensions: [], // Ensures full .git metadata is included
+          submoduleCfg: []
         ])
       }
     }
@@ -40,7 +49,7 @@ pipeline {
 
     stage('Static Code Analysis') {
       environment {
-        SONAR_URL = "http://13.51.172.234:9000"
+        SONAR_URL = "http://13.48.30.225:9000"
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -77,9 +86,17 @@ pipeline {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
           dir('.') {
             sh '''
+              echo "[INFO] Verifying Git environment..."
+              git --version || (echo "Git is not installed in the container!" && exit 1)
+
+              echo "[INFO] Verifying presence of .git directory..."
+              ls -la .git || (echo ".git directory missing!" && exit 1)
+
               git config user.email "durveshkolhe81@gmail.com"
               git config user.name "durvesh"
+
               sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+
               git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
               git commit -m "Update deployment image to version ${BUILD_NUMBER}" || echo "No changes to commit"
               git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
