@@ -19,3 +19,4 @@ spec:
         image: anushkafarkade/ultimate-cicd:85
         ports:
         - containerPort: 8080
+
